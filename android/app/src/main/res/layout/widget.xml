@@ -28,7 +28,7 @@
             android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="Dragonfly"
+            android:text="Dragonfly Uploader"
             android:textColor="@color/text_muted"
             android:textSize="12sp" />
 
@@ -48,7 +48,7 @@
         android:layout_marginTop="4dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:text="Open Dragonfly to sign in"
+        android:text="Open Dragonfly Uploader to sign in"
         android:textColor="@color/text"
         android:textSize="17sp"
         android:textStyle="bold" />

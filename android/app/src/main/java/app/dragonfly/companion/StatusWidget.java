@@ -56,7 +56,7 @@ public class StatusWidget extends AppWidgetProvider {
                 try {
                     Api.sendCommand(context.getApplicationContext(), deviceId, kind);
                 } catch (Api.NotSignedIn e) {
-                    result = "Open Dragonfly to sign in";
+                    result = "Open Dragonfly Uploader to sign in";
                 } catch (Exception e) {
                     result = "Couldn't send. Try again.";
                 } finally {
@@ -98,9 +98,9 @@ public class StatusWidget extends AppWidgetProvider {
         SharedPreferences state = Store.state(context);
         String sending = state.getString("sending", null);
         if (!Store.signedIn(context) || state.getBoolean("signed_out", false)) {
-            views.setTextViewText(R.id.w_device, "Dragonfly");
+            views.setTextViewText(R.id.w_device, "Dragonfly Uploader");
             views.setInt(R.id.w_dot, "setColorFilter", context.getColor(R.color.text_muted));
-            views.setTextViewText(R.id.w_headline, "Open Dragonfly to sign in");
+            views.setTextViewText(R.id.w_headline, "Open Dragonfly Uploader to sign in");
             views.setTextViewText(R.id.w_detail, "Tap here, then sign in with your Dragonfly account.");
             views.setTextViewText(R.id.w_quota, "");
             return views;
@@ -108,7 +108,7 @@ public class StatusWidget extends AppWidgetProvider {
         try {
             String deviceJson = state.getString("device_json", null);
             if (deviceJson == null) {
-                views.setTextViewText(R.id.w_device, "Dragonfly");
+                views.setTextViewText(R.id.w_device, "Dragonfly Uploader");
                 views.setTextViewText(R.id.w_headline, "No computer yet");
                 views.setTextViewText(R.id.w_detail,
                         "On your computer: Accounts → Phone companion → Share status with my phone.");
@@ -187,7 +187,7 @@ public class StatusWidget extends AppWidgetProvider {
                 views.setOnClickPendingIntent(R.id.w_toggle, broadcast(context, 11, toggle));
             }
         } catch (JSONException e) {
-            views.setTextViewText(R.id.w_headline, "Open Dragonfly");
+            views.setTextViewText(R.id.w_headline, "Open Dragonfly Uploader");
             views.setTextViewText(R.id.w_detail, "");
         }
         return views;

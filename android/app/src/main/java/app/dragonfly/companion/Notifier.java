@@ -39,7 +39,7 @@ final class Notifier {
         manager.createNotificationChannel(new NotificationChannel(JOBS,
                 context.getString(R.string.channel_jobs), NotificationManager.IMPORTANCE_DEFAULT));
         manager.createNotificationChannel(new NotificationChannel(UPDATES,
-                context.getString(R.string.channel_updates), NotificationManager.IMPORTANCE_LOW));
+                context.getString(R.string.channel_updates), NotificationManager.IMPORTANCE_DEFAULT));
     }
 
     static void onSnapshot(Context context, JSONObject device, JSONObject snapshot, boolean notify) {
@@ -73,7 +73,7 @@ final class Notifier {
         if (more > 0) {
             show(context, ATTENTION, (scope + "more").hashCode(),
                     more == 1 ? "1 more thing needs your attention" : more + " more things need your attention",
-                    "Open Dragonfly to see them.", openApp(context));
+                    "Open Dragonfly Uploader to see them.", openApp(context));
         }
         // Forget items that went away, so they are announced again if they come back.
         Set<String> keep = new HashSet<>();

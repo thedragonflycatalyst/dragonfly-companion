@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Dragonfly</string>
-    <string name="widget_name">Dragonfly uploads</string>
+    <string name="app_name">Dragonfly Uploader</string>
+    <string name="widget_name">Dragonfly Uploader</string>
     <string name="widget_description">Shows what Dragonfly Uploader is doing and lets you stop or start the queue.</string>
     <string name="channel_attention">Needs your attention</string>
     <string name="channel_jobs">Finished uploads</string>

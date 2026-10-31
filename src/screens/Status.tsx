@@ -254,7 +254,7 @@ export function StatusView({ snapshot, updatedAt, loaded, now }: Props) {
         {snapshot.recent.length === 0 ? (
           <p className="muted">Nothing yet.</p>
         ) : (
-          <ol className="recent">
+          <ol className="recent" tabIndex={0} aria-label="Recent activity, newest first">
             {snapshot.recent.map((item, index) => (
               <li key={`${item.at ?? 0}-${index}`}>
                 <span>{item.text}</span>

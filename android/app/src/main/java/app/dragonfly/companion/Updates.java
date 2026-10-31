@@ -19,27 +19,66 @@ final class Updates {
 
     private Updates() {}
 
+    /** On opening the app: check more often, and the app shows its own prompt. */
+    static final long ON_OPEN_MS = 30 * 60 * 1000L;
+
+    /** An available update: its version and the page to download it from. */
+    static final class Available {
+        final String version;
+        final String url;
+
+        Available(String version, String url) {
+            this.version = version;
+            this.url = url;
+        }
+    }
+
+    /** Background check (twice a day): a notification, once per version. */
     static void checkIfDue(Context context) {
+        Available update = check(context, EVERY_MS);
+        if (update == null) return;
+        SharedPreferences state = Store.state(context);
+        String tag = PREFIX + update.version;
+        if (tag.equals(state.getString("update_offered", ""))) return;
+        state.edit().putString("update_offered", tag).apply();
+        Notifier.show(context, Notifier.UPDATES, 9001, "Dragonfly Uploader update available",
+                "Version " + update.version + " is ready. Tap to download it.",
+                Notifier.openUrl(context, update.url));
+    }
+
+    /**
+     * The newest release when it is newer than this app, or null (also when
+     * checked less than {@code minIntervalMs} ago, offline or rate-limited).
+     */
+    static Available check(Context context, long minIntervalMs) {
         SharedPreferences state = Store.state(context);
         long now = System.currentTimeMillis();
-        if (now - state.getLong("update_checked", 0) < EVERY_MS) return;
+        if (now - state.getLong("update_checked", 0) < minIntervalMs) return null;
         state.edit().putLong("update_checked", now).apply();
         try {
             Api.Response response = Api.send("GET", RELEASES, null, null, null, 15_000);
-            if (response.code != 200) return;
+            if (response.code != 200) return null;
             JSONObject release = new JSONObject(response.body);
             String tag = release.optString("tag_name", "");
-            if (!tag.startsWith(PREFIX)) return;
-            long latest = buildOf(tag.substring(PREFIX.length()));
-            if (latest <= currentBuild(context)) return;
-            if (tag.equals(state.getString("update_offered", ""))) return;
-            state.edit().putString("update_offered", tag).apply();
-            Notifier.show(context, Notifier.UPDATES, 9001, "Dragonfly update available",
-                    "Version " + tag.substring(PREFIX.length()) + " is ready. Tap to download it.",
-                    Notifier.openUrl(context, release.optString("html_url",
-                            "https://github.com/thedragonflycatalyst/dragonfly-companion/releases/latest")));
+            if (!tag.startsWith(PREFIX)) return null;
+            String version = tag.substring(PREFIX.length());
+            if (buildOf(version) <= currentBuild(context)) return null;
+            String apk = null;
+            org.json.JSONArray assets = release.optJSONArray("assets");
+            if (assets != null) {
+                for (int i = 0; i < assets.length(); i++) {
+                    JSONObject asset = assets.optJSONObject(i);
+                    String url = asset == null ? "" : asset.optString("browser_download_url", "");
+                    if (url.startsWith("https://github.com/thedragonflycatalyst/dragonfly-companion/releases/download/")
+                            && url.endsWith(".apk")) {
+                        apk = url;
+                    }
+                }
+            }
+            return new Available(version, apk != null ? apk : release.optString("html_url",
+                    "https://github.com/thedragonflycatalyst/dragonfly-companion/releases/latest"));
         } catch (Exception ignored) {
-            // Offline or rate-limited: try again later.
+            return null; // Offline or rate-limited: try again later.
         }
     }
 

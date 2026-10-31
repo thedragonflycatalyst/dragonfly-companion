@@ -3,6 +3,7 @@ package app.dragonfly.companion;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -87,6 +88,25 @@ public class MainActivity extends Activity {
         visible = true;
         web.onResume();
         web.resumeTimers();
+        offerUpdate();
+    }
+
+    /** Looks for a newer app when opened (at most every 30 minutes) and offers it. */
+    private void offerUpdate() {
+        new Thread(() -> {
+            Updates.Available update = Updates.check(getApplicationContext(), Updates.ON_OPEN_MS);
+            if (update == null) return;
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                new AlertDialog.Builder(this)
+                        .setTitle("Update available")
+                        .setMessage("Dragonfly Uploader " + update.version + " is ready. Download it, then open the "
+                                + "file to install. Your sign-in and widget stay as they are.")
+                        .setPositiveButton("Download", (dialog, which) -> openOutside(Uri.parse(update.url)))
+                        .setNegativeButton("Later", null)
+                        .show();
+            });
+        }, "dragonfly-update").start();
     }
 
     @Override
