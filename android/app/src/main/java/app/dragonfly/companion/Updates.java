@@ -25,7 +25,7 @@ final class Updates {
         if (now - state.getLong("update_checked", 0) < EVERY_MS) return;
         state.edit().putLong("update_checked", now).apply();
         try {
-            Api.Response response = Api.send("GET", RELEASES, null, null, null);
+            Api.Response response = Api.send("GET", RELEASES, null, null, null, 15_000);
             if (response.code != 200) return;
             JSONObject release = new JSONObject(response.body);
             String tag = release.optString("tag_name", "");

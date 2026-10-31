@@ -50,20 +50,30 @@ final class Notifier {
         Set<String> seen = new HashSet<>(state.getStringSet("attention_seen", new HashSet<>()));
         Set<String> nowIds = new HashSet<>();
         int sent = 0;
+        int more = 0;
         JSONArray attention = snapshot.optJSONArray("attention");
         if (attention != null) {
             for (int i = 0; i < attention.length(); i++) {
                 JSONObject item = attention.optJSONObject(i);
                 if (item == null) continue;
-                String id = scope + item.optString("id", String.valueOf(i));
+                String raw = item.isNull("id") ? "" : item.optString("id", "");
+                String id = scope + (raw.isEmpty() ? "#" + i + ":" + item.optString("title", "") : raw);
                 nowIds.add(id);
                 if (seen.contains(id)) continue;
-                if (seeded && notify && sent < MAX_EACH_TIME) {
+                if (!seeded || !notify) continue;
+                if (sent < MAX_EACH_TIME) {
                     show(context, ATTENTION, id.hashCode(), item.optString("title", "Needs your attention"),
                             item.optString("detail", ""), openApp(context));
                     sent++;
+                } else {
+                    more++;
                 }
             }
+        }
+        if (more > 0) {
+            show(context, ATTENTION, (scope + "more").hashCode(),
+                    more == 1 ? "1 more thing needs your attention" : more + " more things need your attention",
+                    "Open Dragonfly to see them.", openApp(context));
         }
         // Forget items that went away, so they are announced again if they come back.
         Set<String> keep = new HashSet<>();

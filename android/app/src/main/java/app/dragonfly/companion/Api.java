@@ -26,6 +26,10 @@ final class Api {
     // Public by design: the desktop app and the web page ship the same key.
     static final String ANON_KEY = "sb_publishable_ME6Xg1mtUBA4994aC0n6Uw_LKsJDTXu";
     private static final int TIMEOUT_MS = 15_000;
+    /** Widget taps run inside a broadcast, which Android limits to a few seconds. */
+    static final int QUICK_TIMEOUT_MS = 4_000;
+    /** The page may still be finishing a refresh just after the app closes. */
+    private static final long AFTER_PAUSE_MS = 60_000;
     private static final Object LOCK = new Object();
 
     static final class NotSignedIn extends Exception {
@@ -42,6 +46,10 @@ final class Api {
      * refreshes of one session could sign the person out.
      */
     static String accessToken(Context context) throws IOException, NotSignedIn {
+        return accessToken(context, TIMEOUT_MS);
+    }
+
+    static String accessToken(Context context, int timeoutMs) throws IOException, NotSignedIn {
         synchronized (LOCK) {
             String raw = Store.sessionJson(context);
             if (raw == null) throw new NotSignedIn();
@@ -51,15 +59,17 @@ final class Api {
                 String access = session.optString("access_token", "");
                 long expiresAt = session.optLong("expires_at", 0);
                 long now = System.currentTimeMillis() / 1000;
-                if (!access.isEmpty() && expiresAt - now > 120) return access;
-                if (MainActivity.isVisible()) {
-                    if (!access.isEmpty() && expiresAt > now) return access;
+                // Use the token while it is valid; refresh only when it has (nearly) expired,
+                // and never while the page may refresh it, so one session is never refreshed twice.
+                if (!access.isEmpty() && expiresAt > now + 10) return access;
+                if (MainActivity.isVisible()
+                        || System.currentTimeMillis() - MainActivity.pausedAt() < AFTER_PAUSE_MS) {
                     throw new IOException("session is being refreshed by the app");
                 }
                 String refresh = session.optString("refresh_token", "");
                 if (refresh.isEmpty()) throw new NotSignedIn();
                 JSONObject body = new JSONObject().put("refresh_token", refresh);
-                Response response = send("POST", URL_BASE + "/auth/v1/token?grant_type=refresh_token", null, body.toString(), null);
+                Response response = send("POST", URL_BASE + "/auth/v1/token?grant_type=refresh_token", null, body.toString(), null, timeoutMs);
                 if (response.code == 400 || response.code == 401) {
                     // The session was revoked or already replaced: sign in again in the app.
                     throw new NotSignedIn();
@@ -92,7 +102,7 @@ final class Api {
 
     static JSONArray select(Context context, String table, String query) throws IOException, NotSignedIn {
         String token = accessToken(context);
-        Response response = send("GET", URL_BASE + "/rest/v1/" + table + "?" + query, token, null, null);
+        Response response = send("GET", URL_BASE + "/rest/v1/" + table + "?" + query, token, null, null, TIMEOUT_MS);
         if (response.code == 401) throw new NotSignedIn();
         if (response.code != 200) throw new IOException(table + ": " + response.code);
         try {
@@ -104,7 +114,7 @@ final class Api {
 
     /** Queues one of the allowed commands for the computer; it checks everything itself. */
     static void sendCommand(Context context, String deviceId, String kind) throws IOException, NotSignedIn {
-        String token = accessToken(context);
+        String token = accessToken(context, QUICK_TIMEOUT_MS);
         String userId = userId(context);
         if (userId == null) throw new NotSignedIn();
         try {
@@ -114,7 +124,8 @@ final class Api {
                     .put("kind", kind)
                     .put("args", new JSONObject())
                     .put("status", "pending");
-            Response response = send("POST", URL_BASE + "/rest/v1/dragonfly_device_commands", token, row.toString(), "return=minimal");
+            Response response = send("POST", URL_BASE + "/rest/v1/dragonfly_device_commands", token, row.toString(),
+                    "return=minimal", QUICK_TIMEOUT_MS);
             if (response.code == 401) throw new NotSignedIn();
             if (response.code != 201 && response.code != 204) {
                 throw new IOException("command: " + response.code);
@@ -138,12 +149,13 @@ final class Api {
         }
     }
 
-    static Response send(String method, String url, String token, String body, String prefer) throws IOException {
+    static Response send(String method, String url, String token, String body, String prefer, int timeoutMs)
+            throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         try {
             connection.setRequestMethod(method);
-            connection.setConnectTimeout(TIMEOUT_MS);
-            connection.setReadTimeout(TIMEOUT_MS);
+            connection.setConnectTimeout(timeoutMs);
+            connection.setReadTimeout(timeoutMs);
             if (url.startsWith(URL_BASE)) {
                 connection.setRequestProperty("apikey", ANON_KEY);
                 connection.setRequestProperty("Authorization", "Bearer " + (token != null ? token : ANON_KEY));

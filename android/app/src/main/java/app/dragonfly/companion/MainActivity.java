@@ -28,11 +28,16 @@ public class MainActivity extends Activity {
     static final String START_URL = "https://" + HOST + PATH;
 
     private static volatile boolean visible;
+    private static volatile long pausedAt;
     private WebView web;
     private volatile boolean trusted;
 
     static boolean isVisible() {
         return visible;
+    }
+
+    static long pausedAt() {
+        return pausedAt;
     }
 
     static boolean isCompanion(Uri uri) {
@@ -87,6 +92,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         visible = false;
+        pausedAt = System.currentTimeMillis();
         web.onPause();
         web.pauseTimers();
         SyncJob.soon(this, 2_000); // the widget picks up any sign-in or change
@@ -171,7 +177,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void setDevice(String id) {
             if (!trusted) return;
-            Store.state(MainActivity.this).edit().putString("device_id", id).apply();
+            Store.state(MainActivity.this).edit().putString("device_id", id == null || id.isEmpty() ? null : id).apply();
             SyncJob.soon(MainActivity.this, 1_000);
         }
 

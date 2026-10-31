@@ -89,11 +89,15 @@ function SignedIn({ session, now }: { session: Session; now: number }) {
     if (pick !== selected) setSelected(pick);
   }, [devices, selected, userPicked]);
 
+  // The Android widget shows the same computer as this page.
+  useEffect(() => {
+    if (selected !== null) native?.setDevice(selected);
+  }, [selected]);
+
   function choose(id: string | null) {
     setUserPicked(true);
     setSelected(id);
     writeStored(DEVICE_KEY, id);
-    if (id !== null) native?.setDevice(id);
   }
 
   const device = devices?.find((item) => item.id === selected) ?? null;

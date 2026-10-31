@@ -13,6 +13,8 @@
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png" />
     <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <!-- No frames: inside the Android app the sign-in bridge is visible to every frame. -->
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'none'; object-src 'none'; base-uri 'self'" />
     <title>Dragonfly Companion</title>
   </head>
   <body>

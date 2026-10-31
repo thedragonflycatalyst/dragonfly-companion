@@ -37,18 +37,10 @@ public class StatusWidget extends AppWidgetProvider {
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         if (ACTION_REFRESH.equals(action)) {
+            // The refresh itself runs as a job: a broadcast only has a few seconds.
             Store.state(context).edit().putString("sending", "Refreshing…").apply();
             renderAll(context);
-            PendingResult pending = goAsync();
-            new Thread(() -> {
-                try {
-                    StatusSync.run(context.getApplicationContext(), true);
-                } finally {
-                    Store.state(context).edit().remove("sending").apply();
-                    renderAll(context);
-                    pending.finish();
-                }
-            }).start();
+            SyncJob.soon(context, 0);
             return;
         }
         if (ACTION_TOGGLE.equals(action)) {
@@ -176,7 +168,8 @@ public class StatusWidget extends AppWidgetProvider {
 
             JSONObject quota = snapshot.optJSONObject("quota");
             String queueText = running ? "Queue running" : "Queue stopped";
-            String quotaText = quota == null ? "" : " · " + quota.optInt("uploadsLeftToday", 0) + " left today";
+            String quotaText = quota == null || quota.isNull("uploadsLeftToday") || !quota.has("uploadsLeftToday")
+                    ? "" : " · " + quota.optInt("uploadsLeftToday", 0) + " left today";
             long statusAt = state.getLong("status_at", 0);
             String age = statusAt > 0 && now - statusAt > StatusSync.OFFLINE_AFTER_MS
                     ? " · as of " + DateFormat.getTimeInstance(DateFormat.SHORT).format(new Date(statusAt)) : "";

@@ -19,7 +19,7 @@ final class StatusSync {
     private StatusSync() {}
 
     /** Runs on a background thread. Never throws. */
-    static void run(Context context, boolean notify) {
+    static synchronized void run(Context context, boolean notify) {
         SharedPreferences state = Store.state(context);
         try {
             if (!Store.signedIn(context)) {
@@ -27,7 +27,7 @@ final class StatusSync {
                 return;
             }
             JSONArray devices = Api.select(context, "dragonfly_devices",
-                    "select=id,name,platform,last_seen_at,companion_control&order=last_seen_at.desc");
+                    "select=id,name,platform,last_seen_at,companion_control&order=last_seen_at.desc.nullslast");
             JSONObject device = pickDevice(devices, state.getString("device_id", null));
             SharedPreferences.Editor edit = state.edit()
                     .putBoolean("signed_out", false)
@@ -55,6 +55,7 @@ final class StatusSync {
         } catch (IOException | org.json.JSONException | RuntimeException e) {
             state.edit().putString("error", "Can't reach Dragonfly right now").apply();
         } finally {
+            state.edit().remove("sending").apply();
             StatusWidget.renderAll(context);
             Updates.checkIfDue(context);
         }

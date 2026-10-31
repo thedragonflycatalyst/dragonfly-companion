@@ -65,7 +65,12 @@ describe('parseSnapshot', () => {
     expect(snap).not.toBeNull();
     if (!snap) return;
     expect(snap.version).toBeNull();
-    expect(snap.queue).toEqual({ running: null, pausedReason: null, next: null });
+    expect(snap.queue).toEqual({
+      running: null,
+      pausedReason: null,
+      next: null,
+      current: null,
+    });
     expect(snap.quota).toEqual({ uploadsLeftToday: null, resetsAt: null });
     expect(snap.attention).toEqual([]);
     expect(snap.archives).toEqual([]);
