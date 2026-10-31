@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../supabase';
+import { native } from '../native';
 import type { Device } from '../lib/devices';
 import type { CommandAction, CommandRow } from '../lib/commands';
 import { isFinal, parseCommandRow } from '../lib/commands';
@@ -167,6 +168,7 @@ export function DeviceView({ device, userId, now }: Props) {
       return;
     }
     mergeCommand(data);
+    native?.statusChanged();
   }
 
   const online = isOnline(device.last_seen_at, now);

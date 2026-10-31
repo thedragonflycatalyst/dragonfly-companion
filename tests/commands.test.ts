@@ -110,4 +110,8 @@ describe('command status', () => {
     expect(parseCommandRow({ id: 'c1', kind: 'queue.pause', status: 'weird' })).toBeNull();
     expect(parseCommandRow(null)).toBeNull();
   });
+  it('explains Resume when nothing is waiting', () => {
+    const empty = availableActions(snap({ queue: { running: false, next: null } }), true);
+    expect(empty.find((a) => a.kind === 'queue.resume')?.description).toMatch(/Nothing is waiting/);
+  });
 });

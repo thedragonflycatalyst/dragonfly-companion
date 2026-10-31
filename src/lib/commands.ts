@@ -73,7 +73,10 @@ export function availableActions(snapshot: Snapshot | null, control: boolean): C
       label: 'Resume queue',
       confirm:
         'Resume the upload queue on your computer? It continues in order, with all the usual checks.',
-      description: 'Starts uploading again in order.',
+      description:
+        snapshot.queue.next === null
+          ? 'Nothing is waiting right now. Turning it on lets new videos upload in order as they arrive.'
+          : 'Starts uploading again in order.',
     });
   }
   for (const job of snapshot.jobs) {

@@ -81,3 +81,19 @@ After choosing a host:
 `public/sw.js` caches the app shell only (the page, built assets and icons).
 It never caches API data: requests to other origins, including Supabase, and
 anything other than GET go straight to the network.
+
+## Android app
+
+`android/` is a small native app (plain Java, no extra libraries) that opens this page and adds:
+
+- a **home-screen widget**: the computer, the upload in progress or the next one, the queue state, uploads left today, anything that needs attention, and a Stop / Start button (only when *Allow phone control* is on);
+- **notifications** for new "needs your attention" items and finished jobs (checked every 15 minutes in the background, Android's minimum);
+- an **update check** against this repository's GitHub Releases.
+
+The page keeps its sign-in in the app's private storage (through the `DragonflyNative` bridge, `src/native.ts`), so the widget uses the same session. Only this page is ever loaded in the app; other links open in the phone's browser.
+
+### Releases
+
+`.github/workflows/android.yml` builds a signed APK on every push to `main` that touches `android/` and publishes it as a GitHub Release (`android-v1.0.<run>`). It needs one repository secret, `DRAGONFLY_KEYSTORE_PASSWORD`, chosen by the owner. On the first run the workflow creates the signing key from it and commits it **encrypted** as `android/release.keystore.enc`. Keep the same password forever: Android only installs an update signed with the same key.
+
+Local build: `cd android && gradle assembleRelease` with `sdk.dir` in `android/local.properties` (debug-signed when `DRAGONFLY_KEYSTORE` is not set).

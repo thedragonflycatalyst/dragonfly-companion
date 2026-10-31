@@ -27,6 +27,17 @@ export interface ArchiveInfo {
   playlist: string;
   upTo: number | null;
   unuploaded: number | null;
+  /** YouTube id of the highest-numbered uploaded video (optional, v1 addition). */
+  lastVideoId: string | null;
+}
+export interface CurrentUpload {
+  archive: string;
+  number: number | null;
+  file: string;
+  /** 'preparing' | 'uploading' | 'verifying' | 'done' or '' */
+  phase: string;
+  /** 0..1, or null when unknown. */
+  progress: number | null;
 }
 export interface HeldInfo {
   number: number | null;
@@ -57,7 +68,12 @@ export interface Snapshot {
   /** True when the desktop speaks a newer format than this companion knows. */
   newerVersion: boolean;
   generatedAt: number | null;
-  queue: { running: boolean | null; pausedReason: string | null; next: NextUpload | null };
+  queue: {
+    running: boolean | null;
+    pausedReason: string | null;
+    next: NextUpload | null;
+    current: CurrentUpload | null;
+  };
   quota: { uploadsLeftToday: number | null; resetsAt: number | null };
   attention: AttentionItem[];
   archives: ArchiveInfo[];
@@ -98,6 +114,26 @@ function parseHeld(value: unknown): HeldInfo | null {
   };
 }
 
+const YOUTUBE_ID = /^[\w-]{11}$/;
+function youtubeId(value: unknown): string | null {
+  return typeof value === 'string' && YOUTUBE_ID.test(value) ? value : null;
+}
+
+function parseCurrent(value: unknown): CurrentUpload | null {
+  if (!isObj(value)) return null;
+  const sent = num(value.bytesSent);
+  const total = num(value.totalBytes);
+  const progress =
+    sent !== null && total !== null && total > 0 ? Math.min(1, Math.max(0, sent / total)) : null;
+  return {
+    archive: str(value.archive),
+    number: num(value.number),
+    file: str(value.file),
+    phase: str(value.phase),
+    progress,
+  };
+}
+
 function parseNext(value: unknown): NextUpload | null {
   if (!isObj(value)) return null;
   const next = {
@@ -131,6 +167,7 @@ export function parseSnapshot(raw: unknown): Snapshot | null {
       running: typeof queue.running === 'boolean' ? queue.running : null,
       pausedReason: str(queue.pausedReason) || null,
       next: parseNext(queue.next),
+      current: parseCurrent(queue.current),
     },
     quota: {
       uploadsLeftToday: num(quota.uploadsLeftToday),
@@ -157,6 +194,7 @@ export function parseSnapshot(raw: unknown): Snapshot | null {
         playlist: str(item.playlist),
         upTo: num(item.upTo),
         unuploaded: num(item.unuploaded),
+        lastVideoId: youtubeId(item.lastVideoId),
       })),
     jobs: list(value.jobs)
       .slice(0, MAX_ITEMS)

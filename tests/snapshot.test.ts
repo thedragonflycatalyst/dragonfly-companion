@@ -27,6 +27,39 @@ describe('parseSnapshot', () => {
     expect(snap.recent).toEqual([{ at: NOW - 60_000, text: 'Uploaded #41' }]);
   });
 
+  it('reads the current upload and the last uploaded video (optional additions)', () => {
+    const snap = parseSnapshot({
+      ...fullSnapshot,
+      queue: {
+        ...fullSnapshot.queue,
+        current: {
+          archive: 'Sample Archive',
+          number: 42,
+          file: '42 - sample clip.mp4',
+          phase: 'uploading',
+          bytesSent: 25,
+          totalBytes: 100,
+        },
+      },
+      archives: [{ ...fullSnapshot.archives[0], lastVideoId: 'abcDEF_1234' }],
+    });
+    expect(snap?.queue.current).toEqual({
+      archive: 'Sample Archive',
+      number: 42,
+      file: '42 - sample clip.mp4',
+      phase: 'uploading',
+      progress: 0.25,
+    });
+    expect(snap?.archives[0]?.lastVideoId).toBe('abcDEF_1234');
+    // Anything that is not a YouTube id is dropped, never turned into a link.
+    const bad = parseSnapshot({
+      ...fullSnapshot,
+      archives: [{ ...fullSnapshot.archives[0], lastVideoId: 'javascript:alert(1)' }],
+    });
+    expect(bad?.archives[0]?.lastVideoId).toBeNull();
+    expect(parseSnapshot(fullSnapshot)?.queue.current).toBeNull();
+  });
+
   it('tolerates an empty object and missing sections', () => {
     const snap = parseSnapshot({});
     expect(snap).not.toBeNull();

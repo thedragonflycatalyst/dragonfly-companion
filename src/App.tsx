@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { native } from './native';
 import type { Device } from './lib/devices';
 import { autoSelect, parseDevice } from './lib/devices';
 import { readStored, useNow, useOnline, useRefreshOnFocus, writeStored } from './hooks';
@@ -92,6 +93,7 @@ function SignedIn({ session, now }: { session: Session; now: number }) {
     setUserPicked(true);
     setSelected(id);
     writeStored(DEVICE_KEY, id);
+    if (id !== null) native?.setDevice(id);
   }
 
   const device = devices?.find((item) => item.id === selected) ?? null;

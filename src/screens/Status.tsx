@@ -19,6 +19,13 @@ const STATE_LABEL: Record<JobInfo['state'], string> = {
   unknown: 'Unknown',
 };
 
+const PHASE: Record<string, string> = {
+  preparing: 'Getting ready to upload',
+  uploading: 'Uploading now',
+  verifying: 'Checking on YouTube',
+  done: 'Just uploaded',
+};
+
 export function StatusView({ snapshot, updatedAt, loaded, now }: Props) {
   if (!loaded)
     return (
@@ -40,6 +47,7 @@ export function StatusView({ snapshot, updatedAt, loaded, now }: Props) {
   const lastUpdate = updatedAt ?? snapshot.generatedAt;
   const stale = isStale(lastUpdate, now);
   const next = snapshot.queue.next;
+  const current = snapshot.queue.current;
   const quota = snapshot.quota;
 
   return (
@@ -59,6 +67,27 @@ export function StatusView({ snapshot, updatedAt, loaded, now }: Props) {
         </p>
       )}
 
+      {current && (
+        <section className="card hero" aria-labelledby="current-title">
+          <h2 id="current-title" className="eyebrow">
+            {PHASE[current.phase] ?? 'Uploading now'}
+          </h2>
+          <p className="hero-number">{current.number === null ? '—' : `#${current.number}`}</p>
+          {current.file && <p className="hero-file">{current.file}</p>}
+          {current.archive && <p className="muted">{current.archive}</p>}
+          {current.progress !== null && (
+            <>
+              <progress
+                value={Math.round(current.progress * 100)}
+                max={100}
+                aria-label="Upload progress"
+              />
+              <p className="muted small">{Math.round(current.progress * 100)}% sent</p>
+            </>
+          )}
+        </section>
+      )}
+
       <section className="card hero" aria-labelledby="next-title">
         <h2 id="next-title" className="eyebrow">
           Next upload
@@ -71,7 +100,10 @@ export function StatusView({ snapshot, updatedAt, loaded, now }: Props) {
             {next.waitingFor && <p className="waiting">Waiting for: {next.waitingFor}</p>}
           </>
         ) : (
-          <p className="muted">Nothing waiting to upload.</p>
+          <p className="muted">
+            Nothing waiting to upload. New videos are queued as they arrive in a monitored
+            archive.
+          </p>
         )}
         <p className="queue-state">
           Queue:{' '}
@@ -174,16 +206,26 @@ export function StatusView({ snapshot, updatedAt, loaded, now }: Props) {
                       <dd>{archive.channel}</dd>
                     </>
                   )}
-                  {archive.playlist && (
-                    <>
-                      <dt>Playlist</dt>
-                      <dd>{archive.playlist}</dd>
-                    </>
-                  )}
+                  <dt>Playlist</dt>
+                  <dd>{archive.playlist || 'No playlist'}</dd>
                   {archive.upTo !== null && (
                     <>
                       <dt>Up to</dt>
                       <dd>#{archive.upTo}</dd>
+                    </>
+                  )}
+                  {archive.lastVideoId !== null && (
+                    <>
+                      <dt>Last upload</dt>
+                      <dd>
+                        <a
+                          href={`https://www.youtube.com/watch?v=${archive.lastVideoId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Open on YouTube
+                        </a>
+                      </dd>
                     </>
                   )}
                   {archive.unuploaded !== null && (
