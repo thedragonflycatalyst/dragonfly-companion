@@ -6,6 +6,7 @@ import type { Device } from './lib/devices';
 import { autoSelect, parseDevice } from './lib/devices';
 import { readStored, useNow, useOnline, useRefreshOnFocus, writeStored } from './hooks';
 import { SignIn } from './screens/SignIn';
+import { rememberLogin } from './lib/remember';
 import { DevicesList } from './screens/Devices';
 import { DeviceView } from './screens/DeviceView';
 
@@ -19,10 +20,17 @@ export function App() {
   const now = useNow();
 
   useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+    void supabase.auth.getSession().then(async ({ data }) => {
+      // A user who unchecked Remember me gets a local logout on cold start.
+      // This does not revoke sessions in Uploader or other Dragonfly apps.
+      if (data.session && !rememberLogin()) {
+        await supabase.auth.signOut({ scope: 'local' });
+        setSession(null);
+      } else {
+        setSession(data.session);
+      }
       setChecked(true);
-    });
+    }).catch(() => setChecked(true));
     const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
     return () => data.subscription.unsubscribe();
   }, []);
