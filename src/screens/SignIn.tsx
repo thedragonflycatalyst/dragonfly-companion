@@ -2,11 +2,13 @@ import { useState, type FormEvent } from 'react';
 import { supabase } from '../supabase';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '../config';
 import { LoginError, loginMessage, loginTarget, usernameLogin } from '../lib/login';
+import { rememberLogin, setRememberLogin } from '../lib/remember';
 
 export function SignIn() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [remember, setRemember] = useState(rememberLogin());
   const [error, setError] = useState<string | null>(null);
 
   async function submit(event: FormEvent) {
@@ -19,6 +21,7 @@ export function SignIn() {
       return;
     }
     setBusy(true);
+    setRememberLogin(remember);
     try {
       if (target.kind === 'email') {
         const { error: authError } = await supabase.auth.signInWithPassword({
@@ -84,6 +87,14 @@ export function SignIn() {
           onChange={(event) => setPassword(event.target.value)}
           required
         />
+        <label className="account-checkbox">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(event) => setRemember(event.target.checked)}
+          />
+          Keep me signed in on this device
+        </label>
         <div role="alert" className="form-error" aria-live="assertive">
           {error}
         </div>
